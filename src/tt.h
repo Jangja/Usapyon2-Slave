@@ -39,7 +39,7 @@
 /// bound type  2 bit
 /// depth       8 bit
 #else
-/// TTEntry struct is the 12 bytes transposition table entry, defined as below:
+/// TTEntry struct is the 16 bytes transposition table entry, defined as below:
 ///
 /// key        16 bit
 /// move       32 bit
@@ -48,6 +48,7 @@
 /// generation  6 bit
 /// bound type  2 bit
 /// depth       8 bit
+/// hand       32 bit
 #endif
 
 struct TTEntry {
@@ -57,8 +58,9 @@ struct TTEntry {
   Value eval()  const { return (Value)eval16; }
   Depth depth() const { return (Depth)depth8; }
   Bound bound() const { return (Bound)(genBound8 & 0x3); }
+  uint32_t hand() const { return (uint32_t)hand32; }
 
-  void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t g) {
+  void save(Key k, uint32_t h, Value v, Bound b, Depth d, Move m, Value ev, uint8_t g) {
 
     // Preserve any existing move for the same position
     if (m || (k >> 48) != key16)
@@ -75,6 +77,7 @@ struct TTEntry {
         eval16    = (int16_t)ev;
         genBound8 = (uint8_t)(g | b);
         depth8    = (int8_t)d;
+        hand32 = (uint32_t)h;
     }
   }
 
@@ -87,6 +90,7 @@ private:
   int16_t  eval16;
   uint8_t  genBound8;
   int8_t   depth8;
+  uint32_t hand32;
 };
 
 
@@ -107,14 +111,14 @@ class TranspositionTable {
     char padding[4]; // Align to a divisor of the cache line size
   };
 
-  static_assert(sizeof(TTEntry)==12,"TTEntry size !=12");
-  static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
+  static_assert(sizeof(TTEntry)==16,"TTEntry size !=16");
+  //static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
 
 public:
  ~TranspositionTable() { free(mem); }
   void new_search() { generation8 += 4; } // Lower 2 bits are used by Bound
   uint8_t generation() const { return generation8; }
-  TTEntry* probe(const Key key, bool& found) const;
+  TTEntry* probe(const Key key, uint32_t h, bool& found) const;
   int hashfull() const;
   void resize(size_t mbSize);
   void clear();

@@ -774,7 +774,7 @@ namespace {
     // position key in case of an excluded move.
     excludedMove = ss->excludedMove;
     posKey = excludedMove ? pos.exclusion_key() : pos.key();
-    tte = TT.probe(posKey, ttHit);
+    tte = TT.probe(posKey, pos.handValue_of_side(), ttHit);
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
     ttMove =  RootNode ? thisThread->rootMoves[thisThread->PVIdx].pv[0]
             : ttHit    ? tte->move() : MOVE_NONE;
@@ -853,7 +853,7 @@ namespace {
         (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
                                          : -(ss-1)->staticEval + 2 * Eval::Tempo;
 
-        tte->save(posKey, VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
+        tte->save(posKey, pos.handValue_of_side(), VALUE_NONE, BOUND_NONE, DEPTH_NONE, MOVE_NONE,
                   ss->staticEval, TT.generation());
     }
 
@@ -972,7 +972,7 @@ namespace {
         search<PvNode ? PV : NonPV>(pos, ss, alpha, beta, d, true);
         ss->skipEarlyPruning = false;
 
-        tte = TT.probe(posKey, ttHit);
+        tte = TT.probe(posKey, pos.handValue_of_side(), ttHit);
         ttMove = ttHit ? tte->move() : MOVE_NONE;
     }
 
@@ -1310,7 +1310,7 @@ moves_loop: // When in check search starts from here
         prevCmh.update(pos.piece_on(prevSq), prevSq, bonus);
     }
 
-    tte->save(posKey, value_to_tt(bestValue, ss->ply),
+    tte->save(posKey, pos.handValue_of_side(), value_to_tt(bestValue, ss->ply),
               bestValue >= beta ? BOUND_LOWER :
               PvNode && bestMove ? BOUND_EXACT : BOUND_UPPER,
               depth, bestMove, ss->staticEval, TT.generation());
@@ -1434,7 +1434,7 @@ moves_loop: // When in check search starts from here
 
     // Transposition table lookup
     posKey = pos.key();
-    tte = TT.probe(posKey, ttHit);
+    tte = TT.probe(posKey, pos.handValue_of_side(), ttHit);
     ttMove = ttHit ? tte->move() : MOVE_NONE;
     ttValue = ttHit ? value_from_tt(tte->value(), ss->ply) : VALUE_NONE;
 
@@ -1477,7 +1477,7 @@ moves_loop: // When in check search starts from here
         if (bestValue >= beta)
         {
             if (!ttHit)
-                tte->save(pos.key(), value_to_tt(bestValue, ss->ply), BOUND_LOWER,
+                tte->save(pos.key(), pos.handValue_of_side(), value_to_tt(bestValue, ss->ply), BOUND_LOWER,
                           DEPTH_NONE, MOVE_NONE, ss->staticEval, TT.generation());
 
             return bestValue;
@@ -1587,7 +1587,7 @@ moves_loop: // When in check search starts from here
               }
               else // Fail high
               {
-                  tte->save(posKey, value_to_tt(value, ss->ply), BOUND_LOWER,
+                  tte->save(posKey, pos.handValue_of_side(), value_to_tt(value, ss->ply), BOUND_LOWER,
                             ttDepth, move, ss->staticEval, TT.generation());
 
                   return value;
@@ -1601,7 +1601,7 @@ moves_loop: // When in check search starts from here
     if (InCheck && bestValue == -VALUE_INFINITE)
         return mated_in(ss->ply); // Plies to mate from the root
 
-    tte->save(posKey, value_to_tt(bestValue, ss->ply),
+    tte->save(posKey, pos.handValue_of_side(), value_to_tt(bestValue, ss->ply),
               PvNode && bestValue > oldAlpha ? BOUND_EXACT : BOUND_UPPER,
               ttDepth, bestMove, ss->staticEval, TT.generation());
 
@@ -1847,10 +1847,10 @@ void RootMove::insert_pv_in_tt(Position& pos) {
   {
       assert(MoveList<MV_LEGAL>(pos).contains(m));
 
-      TTEntry* tte = TT.probe(pos.key(), ttHit);
+      TTEntry* tte = TT.probe(pos.key(), pos.handValue_of_side(), ttHit);
 
       if (!ttHit || tte->move() != m) // Don't overwrite correct entries
-          tte->save(pos.key(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
+          tte->save(pos.key(), pos.handValue_of_side(), VALUE_NONE, BOUND_NONE, DEPTH_NONE,
                     m, VALUE_NONE, TT.generation());
 #ifndef NANOHA
 	  pos.do_move(m, *st++, pos.gives_check(m, CheckInfo(pos)));
@@ -1883,7 +1883,7 @@ bool RootMove::extract_ponder_from_tt(Position& pos)
 	pos.do_move(pv[0], st);
 #endif // !NANOHA
 
-    TTEntry* tte = TT.probe(pos.key(), ttHit);
+    TTEntry* tte = TT.probe(pos.key(), pos.handValue_of_side(), ttHit);
     pos.undo_move(pv[0]);
 
     if (ttHit)
