@@ -137,6 +137,19 @@ namespace {
 #endif
 }
 
+template <typename Tl, typename Tr>
+inline std::array<Tl, 2> operator += (std::array<Tl, 2>& lhs, const std::array<Tr, 2>& rhs) {
+  lhs[0] += rhs[0];
+  lhs[1] += rhs[1];
+  return lhs;
+}
+template <typename Tl, typename Tr>
+inline std::array<Tl, 2> operator -= (std::array<Tl, 2>& lhs, const std::array<Tr, 2>& rhs) {
+  lhs[0] -= rhs[0];
+  lhs[1] -= rhs[1];
+  return lhs;
+}
+
 #ifdef TWIG
 struct EvalSum {
 #if defined USE_AVX2_EVAL
@@ -519,6 +532,25 @@ int Position::evaluate(const Color us) const
 
 	return score;
 #else
+    score.p[2] = KK[sq_bk][sq_wk];
+#if defined USE_AVX2_EVAL || defined USE_SSE_EVAL
+    score.m[0] = _mm_setzero_si128();
+    for (int i = 0; i < nlist; ++i) {
+      const int k0 = list0[i];
+      const int k1 = list1[i];
+      const auto* pkppb = ppkppb[k0];
+      const auto* pkppw = ppkppw[k1];
+      for (int j = i+1; j < nlist; ++j) {
+        const int l0 = list0[j];
+        const int l1 = list1[j];
+        __m128i tmp;
+        tmp = _mm_set_epi32(0, 0, *reinterpret_cast<const int32_t*>(&pkppw[l1][0]), *reinterpret_cast<const int32_t*>(&pkppb[l0][0]));
+        tmp = _mm_cvtepi16_epi32(tmp);
+        score.m[0] = _mm_add_epi32(score.m[0], tmp);
+      }
+      score.p[2] += KKP[sq_bk][sq_wk][k0];
+    }
+#else
 	score.p[2] = KK[sq_bk][sq_wk];
 
 	score.p[0][0] = 0;
@@ -543,6 +575,7 @@ int Position::evaluate(const Color us) const
 		score.p[2][1] += KKP[sq_bk][sq_wk][k0][1];
 	}
 
+#endif
 	score.p[2][0] += MATERIAL * FV_SCALE;
 
 	return score.sum(us) / FV_SCALE ;
