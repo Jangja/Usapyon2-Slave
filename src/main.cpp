@@ -41,10 +41,10 @@ int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+  UCI::init(Options);
 #ifdef NANOHA
   init_application_once();
 #endif
-  UCI::init(Options);
 #ifndef NANOHA
   PSQT::init();
   Bitboards::init();
