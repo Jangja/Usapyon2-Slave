@@ -74,7 +74,7 @@ namespace {
         fen = StartFEN;
         is >> token; // Consume "moves" token if any
     }
-    else if (token == "fen")
+    else if (token == "sfen")
         while (is >> token && token != "moves")
             fen += token + " ";
     else
@@ -353,6 +353,7 @@ Move UCI::to_move(const Position& pos, string& str) {
 }
 #else
 Move UCI::to_move(const Position& pos, string& str) {
+
 	return move_from_uci(pos, str);
 }
 #endif

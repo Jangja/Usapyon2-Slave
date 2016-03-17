@@ -41,6 +41,9 @@ int main(int argc, char* argv[]) {
 
   std::cout << engine_info() << std::endl;
 
+#ifdef NANOHA
+  init_application_once();
+#endif
   UCI::init(Options);
 #ifndef NANOHA
   PSQT::init();
@@ -51,9 +54,6 @@ int main(int argc, char* argv[]) {
   Bitbases::init();
 #endif
   Search::init();
-#ifdef NANOHA
-  init_application_once();
-#endif
 #ifndef NANOHA
   Eval::init();
   Pawns::init();
